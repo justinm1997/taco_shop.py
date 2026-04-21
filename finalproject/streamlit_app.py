@@ -93,12 +93,12 @@ def delete_order(order_index):
     return False
 
 
-def update_order(order_index, new_customer, new_table):
-    """Update customer name or table number of an order"""
+def update_order(order_index, new_customer, new_table, new_category, new_tortilla, new_protein, new_extras, new_total):
+    """Update all fields of an order"""
     orders = read_all_orders()
     if 0 <= order_index < len(orders):
-        order = orders[order_index]
-        updated_line = f"{new_customer},{new_table},{order['category']},{order['tortilla']},{order['protein']},{order['extras']},{order['total']}"
+        extras_str = "|".join(new_extras) if new_extras else "None"
+        updated_line = f"{new_customer},{new_table},{new_category},{new_tortilla},{new_protein},{extras_str},{new_total:.2f}"
         orders[order_index]["raw"] = updated_line
 
         with open(ORDER_FILE, "w") as f:
@@ -271,6 +271,7 @@ def page_update_order():
     st.divider()
 
     current_order = orders[selected_order]
+    extras_list = [e for e in current_order['extras'].split("|") if e != "None"]
 
     st.write("**Current Order Details:**")
     col1, col2 = st.columns(2)
@@ -278,10 +279,12 @@ def page_update_order():
     with col1:
         st.write(f"Customer: {current_order['customer']}")
         st.write(f"Category: {current_order['category']}")
+        st.write(f"Protein: {current_order['protein']}")
 
     with col2:
         st.write(f"Table: {current_order['table']}")
-        st.write(f"Total: ${current_order['total']}")
+        st.write(f"Tortilla: {current_order['tortilla']}")
+        st.write(f"Extras: {current_order['extras']}")
 
     st.divider()
 
@@ -290,11 +293,56 @@ def page_update_order():
 
     with col1:
         new_customer = st.text_input(
-            "New Customer Name", value=current_order["customer"]
+            "Customer Name", value=current_order["customer"]
         ).title()
+        new_table = st.text_input("Table Number", value=current_order["table"])
 
     with col2:
-        new_table = st.text_input("New Table Number", value=current_order["table"])
+        new_category = st.selectbox(
+            "Category", CATEGORY_OPTIONS, 
+            index=list(CATEGORY_OPTIONS).index(current_order['category'])
+        )
+
+    st.divider()
+
+    # Conditional tortilla field
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if new_category == "Taco":
+            new_tortilla = st.selectbox(
+                "Tortilla Type", TORTILLA_OPTIONS,
+                index=list(TORTILLA_OPTIONS).index(current_order['tortilla']) if current_order['tortilla'] != "N/A" else 0
+            )
+        else:
+            new_tortilla = "N/A"
+            st.info(f"ℹ️ Tortilla N/A for {new_category}")
+
+    with col2:
+        new_protein = st.selectbox(
+            "Protein", MEAT_OPTIONS,
+            index=list(MEAT_OPTIONS).index(current_order['protein'])
+        )
+
+    with col3:
+        st.write("")  # Spacing
+
+    st.divider()
+
+    st.write("**Extras:**")
+    new_extras = st.multiselect(
+        "Select toppings", TOPPING_OPTIONS, 
+        default=extras_list, label_visibility="collapsed"
+    )
+
+    st.divider()
+
+    # Recalculate total
+    new_total = calculate_total(new_category, new_protein, len(new_extras))
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        st.metric("💰 New Total", f"${new_total:.2f}")
 
     st.divider()
 
@@ -306,7 +354,7 @@ def page_update_order():
         elif not new_table.isdigit():
             st.error("❌ Table number must be numeric")
         else:
-            if update_order(selected_order, new_customer, new_table):
+            if update_order(selected_order, new_customer, new_table, new_category, new_tortilla, new_protein, new_extras, new_total):
                 st.success("✅ Order updated successfully!")
             else:
                 st.error("❌ Failed to update order")
