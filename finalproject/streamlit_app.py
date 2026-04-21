@@ -150,7 +150,7 @@ def page_create_order():
 
     # Extras (multi-select)
     st.write("**🥬 Extras** (select as many as you want)")
-    extras = st.multiselect("", TOPPING_OPTIONS, default=[])
+    extras = st.multiselect("Select toppings", TOPPING_OPTIONS, default=[], label_visibility="collapsed")
 
     st.divider()
 
