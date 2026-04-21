@@ -6,7 +6,6 @@ Developer: Justin Moravec
 """
 
 import streamlit as st
-import csv
 import os
 from datetime import datetime
 
@@ -47,7 +46,7 @@ def calculate_total(category, protein, extras_count):
 def save_order(customer_name, table_number, category, tortilla, protein, extras, total):
     """Save order to order_history.txt with timestamp"""
     extras_str = "|".join(extras) if extras else "None"
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with open(ORDER_FILE, "a") as f:
         f.write(
@@ -95,7 +94,16 @@ def delete_order(order_index):
     return False
 
 
-def update_order(order_index, new_customer, new_table, new_category, new_tortilla, new_protein, new_extras, new_total):
+def update_order(
+    order_index,
+    new_customer,
+    new_table,
+    new_category,
+    new_tortilla,
+    new_protein,
+    new_extras,
+    new_total,
+):
     """Update all fields of an order (preserves original timestamp)"""
     orders = read_all_orders()
     if 0 <= order_index < len(orders):
@@ -153,7 +161,9 @@ def page_create_order():
 
     # Extras (multi-select)
     st.write("**🥬 Extras** (select as many as you want)")
-    extras = st.multiselect("Select toppings", TOPPING_OPTIONS, default=[], label_visibility="collapsed")
+    extras = st.multiselect(
+        "Select toppings", TOPPING_OPTIONS, default=[], label_visibility="collapsed"
+    )
 
     st.divider()
 
@@ -275,7 +285,7 @@ def page_update_order():
     st.divider()
 
     current_order = orders[selected_order]
-    extras_list = [e for e in current_order['extras'].split("|") if e != "None"]
+    extras_list = [e for e in current_order["extras"].split("|") if e != "None"]
 
     st.write("**Current Order Details:**")
     col1, col2 = st.columns(2)
@@ -305,20 +315,26 @@ def page_update_order():
 
     with col2:
         new_category = st.selectbox(
-            "Category", CATEGORY_OPTIONS, 
-            index=list(CATEGORY_OPTIONS).index(current_order['category'])
+            "Category",
+            CATEGORY_OPTIONS,
+            index=list(CATEGORY_OPTIONS).index(current_order["category"]),
         )
 
     st.divider()
 
     # Conditional tortilla field
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         if new_category == "Taco":
             new_tortilla = st.selectbox(
-                "Tortilla Type", TORTILLA_OPTIONS,
-                index=list(TORTILLA_OPTIONS).index(current_order['tortilla']) if current_order['tortilla'] != "N/A" else 0
+                "Tortilla Type",
+                TORTILLA_OPTIONS,
+                index=(
+                    list(TORTILLA_OPTIONS).index(current_order["tortilla"])
+                    if current_order["tortilla"] != "N/A"
+                    else 0
+                ),
             )
         else:
             new_tortilla = "N/A"
@@ -326,8 +342,9 @@ def page_update_order():
 
     with col2:
         new_protein = st.selectbox(
-            "Protein", MEAT_OPTIONS,
-            index=list(MEAT_OPTIONS).index(current_order['protein'])
+            "Protein",
+            MEAT_OPTIONS,
+            index=list(MEAT_OPTIONS).index(current_order["protein"]),
         )
 
     with col3:
@@ -337,15 +354,17 @@ def page_update_order():
 
     st.write("**Extras:**")
     new_extras = st.multiselect(
-        "Select toppings", TOPPING_OPTIONS, 
-        default=extras_list, label_visibility="collapsed"
+        "Select toppings",
+        TOPPING_OPTIONS,
+        default=extras_list,
+        label_visibility="collapsed",
     )
 
     st.divider()
 
     # Recalculate total
     new_total = calculate_total(new_category, new_protein, len(new_extras))
-    
+
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         st.metric("💰 New Total", f"${new_total:.2f}")
@@ -360,7 +379,16 @@ def page_update_order():
         elif not new_table.isdigit():
             st.error("❌ Table number must be numeric")
         else:
-            if update_order(selected_order, new_customer, new_table, new_category, new_tortilla, new_protein, new_extras, new_total):
+            if update_order(
+                selected_order,
+                new_customer,
+                new_table,
+                new_category,
+                new_tortilla,
+                new_protein,
+                new_extras,
+                new_total,
+            ):
                 st.success("✅ Order updated successfully!")
             else:
                 st.error("❌ Failed to update order")
