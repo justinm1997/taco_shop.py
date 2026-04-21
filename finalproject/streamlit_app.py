@@ -45,12 +45,13 @@ def calculate_total(category, protein, extras_count):
 
 
 def save_order(customer_name, table_number, category, tortilla, protein, extras, total):
-    """Save order to order_history.txt"""
+    """Save order to order_history.txt with timestamp"""
     extras_str = "|".join(extras) if extras else "None"
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with open(ORDER_FILE, "a") as f:
         f.write(
-            f"{customer_name},{table_number},{category},{tortilla},{protein},{extras_str},{total:.2f}\n"
+            f"{timestamp},{customer_name},{table_number},{category},{tortilla},{protein},{extras_str},{total:.2f}\n"
         )
 
 
@@ -65,16 +66,17 @@ def read_all_orders():
             line = line.strip()
             if line:
                 parts = line.split(",")
-                if len(parts) >= 7:
+                if len(parts) >= 8:
                     orders.append(
                         {
-                            "customer": parts[0],
-                            "table": parts[1],
-                            "category": parts[2],
-                            "tortilla": parts[3],
-                            "protein": parts[4],
-                            "extras": parts[5],
-                            "total": parts[6],
+                            "timestamp": parts[0],
+                            "customer": parts[1],
+                            "table": parts[2],
+                            "category": parts[3],
+                            "tortilla": parts[4],
+                            "protein": parts[5],
+                            "extras": parts[6],
+                            "total": parts[7],
                             "raw": line,
                         }
                     )
@@ -94,11 +96,12 @@ def delete_order(order_index):
 
 
 def update_order(order_index, new_customer, new_table, new_category, new_tortilla, new_protein, new_extras, new_total):
-    """Update all fields of an order"""
+    """Update all fields of an order (preserves original timestamp)"""
     orders = read_all_orders()
     if 0 <= order_index < len(orders):
+        order = orders[order_index]
         extras_str = "|".join(new_extras) if new_extras else "None"
-        updated_line = f"{new_customer},{new_table},{new_category},{new_tortilla},{new_protein},{extras_str},{new_total:.2f}"
+        updated_line = f"{order['timestamp']},{new_customer},{new_table},{new_category},{new_tortilla},{new_protein},{extras_str},{new_total:.2f}"
         orders[order_index]["raw"] = updated_line
 
         with open(ORDER_FILE, "w") as f:
@@ -240,6 +243,7 @@ def page_read_orders():
                 st.write(f"**Protein:** {order['protein']}")
                 st.write(f"**Extras:** {order['extras']}")
 
+            st.write(f"**⏰ Order Time:** {order['timestamp']}")
             st.write(f"**💰 Total:** ${order['total']}")
 
 
@@ -285,6 +289,8 @@ def page_update_order():
         st.write(f"Table: {current_order['table']}")
         st.write(f"Tortilla: {current_order['tortilla']}")
         st.write(f"Extras: {current_order['extras']}")
+
+    st.write(f"**⏰ Order Time:** {current_order['timestamp']}")
 
     st.divider()
 
@@ -401,6 +407,8 @@ def page_delete_order():
     with col2:
         st.write(f"Table: {current_order['table']}")
         st.write(f"Total: ${current_order['total']}")
+
+    st.write(f"**⏰ Order Time:** {current_order['timestamp']}")
 
     st.divider()
 
