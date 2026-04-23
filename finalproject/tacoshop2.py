@@ -1,9 +1,9 @@
 # GLOBAL CONSTANTS (Pantry Rules)
 MENU_FILE = "menu.txt"
-TORTILLA_OPTIONS = ("Corn", "Flour")
-MEAT_OPTIONS = ("Chicken", "Beef", "Steak")
-TOPPING_OPTIONS = ("Lettuce", "Cilantro", "Tomato", "Cheese", "Onion", "Salsa")
-CATEGORY_OPTIONS = ("Taco", "Burrito", "Nachos")
+# TORTILLA_OPTIONS = ("Corn", "Flour")
+# MEAT_OPTIONS = ("Chicken", "Beef", "Steak")
+# TOPPING_OPTIONS = ("Lettuce", "Cilantro", "Tomato", "Cheese", "Onion", "Salsa")
+# CATEGORY_OPTIONS = ("Taco", "Burrito", "Nachos")
 
 
 def get_customer_info():
@@ -19,14 +19,40 @@ def get_customer_info():
     return name, location
 
 
-def take_order():
+def read_menu():
+    def read_menu():
+        menus = {}
+
+    try:
+        with open("justin_fix/menu.txt", "r") as file:
+            for line in file:
+                parts_of_line = line.strip().split(";")
+                category = parts_of_line[0].strip()
+                detail = parts_of_line[1].strip()
+                menus[category] = detail
+        return menus
+    except Exception as e:
+        print(e)
+
+
+def create_variables(menu_items):  # menus is a dictionary
+
+    tortilla = menu_items.get("TORTILLA")
+    meat = menu_items.get("MEAT")
+    toppings = menu_items.get("TOPPINGS")
+    categories = menu_items.get("CATEGORY")
+
+    return tortilla, meat, toppings, categories
+
+
+def take_order(tortilla, meat, toppings, categories):
     """Collects taco category, tortilla, protein, and extras with validation."""
 
     # CATEGORY
     print("Category Options: Taco / Burrito / Nachos")
     while True:
         category = input("Choose category: ").title()
-        if category in CATEGORY_OPTIONS:
+        if category in categories:
             break
         print("Invalid choice. Please choose Taco, Burrito, or Nachos.")
 
@@ -35,19 +61,22 @@ def take_order():
         print("Tortilla Options: Flour / Corn")
         while True:
             tortilla = input("Choose tortilla: ").title()
-            if tortilla in TORTILLA_OPTIONS:
+            if tortilla in tortilla:
                 break
             print("Invalid choice. Please choose Flour or Corn.")
     else:
         tortilla = "N/A"
 
     # PROTEIN
-    print("Protein Options: Beef / Chicken / Steak")
+    print("Protein Options:")
+    for meat in meat:
+        print(meat)
+
     while True:
         protein = input("Choose protein: ").title()
-        if protein in MEAT_OPTIONS:
+        if protein in meat:
             break
-        print("Invalid choice. Please choose Beef, Chicken, or Steak.")
+        print(f"Invalid choice. Please choose {meat}")
 
     # EXTRAS (validation)
     print("Extras Options: Lettuce, Tomato, Cheese, Onion, Salsa")
@@ -63,12 +92,12 @@ def take_order():
         raw_list = [e.strip().title() for e in extras.split(",")]
 
         # Validate all extras
-        if all(e in TOPPING_OPTIONS for e in raw_list):
+        if all(e in toppings for e in raw_list):
             extras_list = raw_list
             break
         else:
             print("Invalid topping detected. Please enter only valid toppings.")
-            print("Valid options: Lettuce, Cilantro, Tomato, Cheese, Onion, Salsa")
+            print("Valid options: Lettuce, Cilantro, Tomato, Cheese,\ Onion, Salsa")
 
     return {
         "category": category,
@@ -106,11 +135,12 @@ def save_data_and_label(customer, location, total, order_data):
     """Appends to order_history.txt and prints the human-readable label."""
 
     # Print ticket
-    print(f"--- KITCHEN TICKET ---")
+    print("--- KITCHEN TICKET ---")
     print(f"TABLE NUMBER: {location} | NAME: {customer}")
     print(f"ITEM: {order_data['category']}")
     print(f"TORTILLA: {order_data['tortilla']}")
     print(f"PROTEIN: {order_data['protein']}")
+    # source citation
     print(
         f"EXTRAS: {', '.join(order_data['extras']) if order_data['extras'] else 'None'}"
     )
@@ -130,8 +160,14 @@ def main():
     # 1. Identity
     name, location = get_customer_info()
 
+    # 1B. read menu!
+    menus = read_menu()
+
+    # 1C. create variables
+    tortilla, meat, toppings, category = create_variables(menus)
+
     # 2. Data Collection
-    current_order = take_order()
+    current_order = take_order(tortilla, meat, toppings, category)
 
     # 3. Calculation
     final_price = calculate_total(current_order)

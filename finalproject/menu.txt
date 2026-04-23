@@ -1,0 +1,4 @@
+TORTILLA : corn, flour, bowl
+MEAT : chicken, beef, steak
+TOPPINGS : lettuce, cilantro, tomato, cheese, onion, salsa
+CATEGORY : taco, burrito, nachos

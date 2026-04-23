@@ -1,0 +1,4 @@
+TORTILLA_OPTIONS : Corn, Flour
+MEAT_OPTIONS : Chicken, Beef, Steak
+TOPPINGS_OPTIONS : Lettuce, Cilantro, Tomato, Cheese, Onion, Salsa
+CATEGORY_OPTIONS : Taco, Burrito, Nachos
