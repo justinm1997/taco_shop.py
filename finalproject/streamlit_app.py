@@ -432,7 +432,9 @@ def page_update_order():
     st.divider()
 
     # Recalculate total
-    new_total = calculate_total(new_category, new_protein, len(new_extras))
+    new_total = calculate_total(
+        new_category, new_protein, len(new_extras), new_quantity
+    )
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
@@ -456,7 +458,7 @@ def page_update_order():
                 new_tortilla,
                 new_protein,
                 new_extras,
-                new_quality,
+                new_quantity,
                 new_total,
             ):
                 st.success("✅ Order updated successfully!")
