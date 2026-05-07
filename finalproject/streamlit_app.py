@@ -196,7 +196,7 @@ def page_create_order():
     st.divider()
 
     # Price calculation and display
-    breakdown = get_price_breakdown(category, protein, len(extras))
+    breakdown = get_price_breakdown(category, protein, len(extras), quantity)
     total = breakdown["total"]
 
     with st.expander("🧾 Order Summary", expanded=True):
