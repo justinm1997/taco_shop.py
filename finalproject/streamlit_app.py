@@ -18,6 +18,7 @@ TORTILLA_OPTIONS = ("Corn", "Flour")
 MEAT_OPTIONS = ("Chicken", "Beef", "Steak")
 TOPPING_OPTIONS = ("Lettuce", "Cilantro", "Tomato", "Cheese", "Onion", "Salsa")
 CATEGORY_OPTIONS = ("Taco", "Burrito", "Nachos")
+QUALITY_OPTIONS = ("Low", "Medium", "High")
 
 # Pricing
 CATEGORY_PRICES = {"Taco": 3.00, "Burrito": 8.00, "Nachos": 10.00}
@@ -43,14 +44,30 @@ def calculate_total(category, protein, extras_count):
     return base + protein_cost + extras_total
 
 
-def save_order(customer_name, table_number, category, tortilla, protein, extras, total):
+def get_price_breakdown(category, protein, extras_count):
+    """Return a detailed pricing breakdown for the current order."""
+    base = CATEGORY_PRICES.get(category, 3.00)
+    protein_cost = PROTEIN_UPCHARGE.get(protein, 0)
+    extras_total = extras_count * EXTRA_COST
+    total = base + protein_cost + extras_total
+    return {
+        "base": base,
+        "protein_cost": protein_cost,
+        "extras_total": extras_total,
+        "total": total,
+    }
+
+
+def save_order(
+    customer_name, table_number, category, tortilla, protein, extras, quality, total
+):
     """Save order to order_history.txt with timestamp"""
     extras_str = "|".join(extras) if extras else "None"
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     with open(ORDER_FILE, "a") as f:
         f.write(
-            f"{timestamp},{customer_name},{table_number},{category},{tortilla},{protein},{extras_str},{total:.2f}\n"
+            f"{timestamp},{customer_name},{table_number},{category},{tortilla},{protein},{extras_str},{quality},{total:.2f}\n"
         )
 
 
@@ -66,6 +83,8 @@ def read_all_orders():
             if line:
                 parts = line.split(",")
                 if len(parts) >= 8:
+                    quality = parts[7] if len(parts) >= 9 else "Unknown"
+                    total_index = 8 if len(parts) >= 9 else 7
                     orders.append(
                         {
                             "timestamp": parts[0],
@@ -75,7 +94,8 @@ def read_all_orders():
                             "tortilla": parts[4],
                             "protein": parts[5],
                             "extras": parts[6],
-                            "total": parts[7],
+                            "quality": quality,
+                            "total": parts[total_index],
                             "raw": line,
                         }
                     )
@@ -102,6 +122,7 @@ def update_order(
     new_tortilla,
     new_protein,
     new_extras,
+    new_quality,
     new_total,
 ):
     """Update all fields of an order (preserves original timestamp)"""
@@ -109,7 +130,7 @@ def update_order(
     if 0 <= order_index < len(orders):
         order = orders[order_index]
         extras_str = "|".join(new_extras) if new_extras else "None"
-        updated_line = f"{order['timestamp']},{new_customer},{new_table},{new_category},{new_tortilla},{new_protein},{extras_str},{new_total:.2f}"
+        updated_line = f"{order['timestamp']},{new_customer},{new_table},{new_category},{new_tortilla},{new_protein},{extras_str},{new_quality},{new_total:.2f}"
         orders[order_index]["raw"] = updated_line
 
         with open(ORDER_FILE, "w") as f:
@@ -157,7 +178,7 @@ def page_create_order():
         protein = st.selectbox("🍗 Protein", MEAT_OPTIONS)
 
     with col3:
-        st.write("")  # Spacing
+        quality = st.selectbox("⭐ Quality", QUALITY_OPTIONS)
 
     # Extras (multi-select)
     st.write("**🥬 Extras** (select as many as you want)")
@@ -168,11 +189,27 @@ def page_create_order():
     st.divider()
 
     # Price calculation and display
-    total = calculate_total(category, protein, len(extras))
+    breakdown = get_price_breakdown(category, protein, len(extras))
+    total = breakdown["total"]
 
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        st.metric("💰 Total", f"${total:.2f}")
+    with st.expander("🧾 Order Summary", expanded=True):
+        st.write("**Order details:**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.write(f"**Customer:** {customer_name or 'N/A'}")
+            st.write(f"**Table:** {table_number or 'N/A'}")
+            st.write(f"**Category:** {category}")
+            st.write(f"**Tortilla:** {tortilla}")
+            st.write(f"**Protein:** {protein}")
+            st.write(f"**Quality:** {quality}")
+            st.write(f"**Extras:** {', '.join(extras) if extras else 'None'}")
+
+        with col2:
+            st.write(f"**Base price:** ${breakdown['base']:.2f}")
+            st.write(f"**Protein upcharge:** ${breakdown['protein_cost']:.2f}")
+            st.write(f"**Extras ({len(extras)}):** ${breakdown['extras_total']:.2f}")
+            st.write(f"**Total:** ${breakdown['total']:.2f}")
 
     st.divider()
 
@@ -187,7 +224,14 @@ def page_create_order():
             st.error("❌ Table number must be numeric")
         else:
             save_order(
-                customer_name, table_number, category, tortilla, protein, extras, total
+                customer_name,
+                table_number,
+                category,
+                tortilla,
+                protein,
+                extras,
+                quality,
+                total,
             )
             st.success(f"✅ Order saved! Total: ${total:.2f}")
             st.balloons()
@@ -247,6 +291,7 @@ def page_read_orders():
                 st.write(f"**Customer:** {order['customer']}")
                 st.write(f"**Table:** {order['table']}")
                 st.write(f"**Category:** {order['category']}")
+                st.write(f"**Quality:** {order.get('quality', 'Unknown')}")
 
             with col2:
                 st.write(f"**Tortilla:** {order['tortilla']}")
@@ -320,6 +365,16 @@ def page_update_order():
             index=list(CATEGORY_OPTIONS).index(current_order["category"]),
         )
 
+    with col1:
+        quality_index = 0
+        if current_order.get("quality") in QUALITY_OPTIONS:
+            quality_index = list(QUALITY_OPTIONS).index(current_order["quality"])
+        new_quality = st.selectbox(
+            "Quality",
+            QUALITY_OPTIONS,
+            index=quality_index,
+        )
+
     st.divider()
 
     # Conditional tortilla field
@@ -349,6 +404,8 @@ def page_update_order():
 
     with col3:
         st.write("")  # Spacing
+
+    st.write(f"**Current Quality:** {current_order.get('quality', 'Unknown')}")
 
     st.divider()
 
